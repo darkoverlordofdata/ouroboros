@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "module": "amd",
+    "rootDir": "src",
+    "allowJs": true,
+    "allowUnreachableCode": true,
+    "allowUnusedLabels": true,
+    "outFile": "bin/ouroboros"
+  },
+  "files": [
+    "node_modules/gir2dts/src/webkit-3.0.d.ts",
+    "node_modules/gir2dts/src/soup-2.4.d.ts",
+    "node_modules/gir2dts/src/pango-1.0.d.ts",
+    "node_modules/gir2dts/src/gdk-3.0.d.ts",
+    "node_modules/gir2dts/src/gtk-3.0.d.ts",
+    "node_modules/gir2dts/src/gtksource-3.0.d.ts",
+    "node_modules/gir2dts/src/gobject-2.0.d.ts",
+    "node_modules/gir2dts/src/glib-2.0.d.ts",
+    "node_modules/gir2dts/src/gio-2.0.d.ts",
+    "node_modules/gir2dts/src/gda-5.0.d.ts",
+    "node_modules/gir2dts/src/atk-1.0.d.ts",
+    "node_modules/gir2dts/src/gjs.d.ts",
+    "node_modules/gir2dts/src/gjs.js",
+    "node_modules/liquid.coffee/dist/liquid.coffee.d.ts",
+    "node_modules/liquid.coffee/dist/liquid.coffee.js",
+    "src/browserified.d.ts",
+    "src/browserified.js",
+    "src/imports.ts",
+    "src/main.ts"
+  ]
+}
