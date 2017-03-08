@@ -1,5 +1,5 @@
 /**
- * Import optioinsl Gir
+ * Import optional Gir libraries
  */
 define.imports({
     Gda: imports.gi.Gda,

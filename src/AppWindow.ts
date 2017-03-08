@@ -22,21 +22,19 @@ function AppWindowFactory() {
   return Util.loadTemplate({
     name: 'AppWindow', 
     extends: Gtk.ApplicationWindow,
-    fields: ['background', 'back', 'refresh', 'url', 'scrolled', 'status'],
+    fields: ['back', 'refresh', 'url', 'client', 'status'],
     path: `${DATADIR}/share/ouroboros/main.ui`
   })
 }
 
 /** 
- * IAppWindow interface exposes fields from the designer in
- * Ouroboros.ui 
+ * IAppWindow interface exposes fields in the *.ui 
  */
 export interface IAppWindow extends Gtk.ApplicationWindow {
-  background: Gtk.Box
   back: Gtk.Button
   refresh: Gtk.Button
   url: Gtk.Entry
-  scrolled: Gtk.ScrolledWindow
+  client: Gtk.ScrolledWindow
   status: Gtk.Statusbar
 }
 
@@ -48,7 +46,6 @@ export class AppWindow {
   window: IAppWindow
   headerbar: Gtk.HeaderBar
   parent: Ouroboros
-  server: Joy.Server
   webView: WebKit.WebView
 
   /**
@@ -57,9 +54,19 @@ export class AppWindow {
   constructor(params, parent) {
     this.parent = parent
     this.window = new (AppWindowFactory())(params) as IAppWindow
-    Gtk.Window.set_default_icon_from_file(`${DATADIR}/share/ouroboros/bosco.png`)
+    /**
+     * By anonymous medieval illuminator; uploader <a href="//commons.wikimedia.org/wiki/User:Carlos_adanero" title="User:Carlos adanero">Carlos adanero</a> - Fol. 196 of Codex Parisinus graecus 2327, a copy (made by Theodoros Pelecanos (Pelekanos) of Corfu in Khandak, Iraklio, Crete in 1478) of a lost manuscript of an early medieval tract which was attributed to Synosius (Synesius) of Cyrene (d. 412).The text of the tract is attributed to Stephanus of Alexandria (7th century).cf. scan of entire page <a rel="nofollow" class="external text" href="http://www.flickr.com/photos/ouroboran/2288405597/in/photostream/">here</a>., Public Domain, <a href="https://commons.wikimedia.org/w/index.php?curid=2856329">Link</a>
+     * 
+     */
+    // Gtk.Window.set_default_icon_from_file(`${DATADIR}/share/ouroboros/bosco.png`)
+    Gtk.Window.set_default_icon_from_file(`${DATADIR}/share/ouroboros/about.jpg`)
+    this.window.set_icon_from_file(`${DATADIR}/share/ouroboros/icon.jpg`)
   }
 
+  /**
+   * set the configuration
+   * @param config 
+   */
   setConfig(config) {
     this.config = config
   }
@@ -77,26 +84,31 @@ export class AppWindow {
     this.headerbar.pack_start(this.buildPreferences())
 
     let webView = this.webView = new WebKit.WebView()
-    this.window.scrolled.add(this.webView)
+    this.window.client.add(this.webView)
     this.window.back.connect('clicked', (button) => webView.go_back() )
     this.window.refresh.connect('clicked', (button) => webView.reload() )
     this.window.url.connect('activate', (button) => webView.load_uri(this.window.url.get_text()))
 
-    this.server = new Joy.Server()
-    this.startServer(this.server)
+    this.startServer()
     this.window.set_default_size(1040, 740)
     this.window.set_titlebar(this.headerbar)
     return this.window.show_all()
   }
 
+  /**
+   * Set the url
+   * @param url 
+   */
   setUrl(url: string) {
     this.webView.load_uri(url)
     this.window.url.set_text(url)
     
   }
 
+  /**
+   * Build a set preferences button
+   */
   buildPreferences() {
-
     // Add options to set the name and the prefix
     let grid = new Gtk.Grid({
         column_spacing: 10,
@@ -145,8 +157,6 @@ export class AppWindow {
 
   /**
    * build open site button
-   *   
-   * @param config
    */
   buildOpen() {
     const openButton = new Gtk.Button()
@@ -175,53 +185,30 @@ export class AppWindow {
     return openButton
   }
 
-  startServer(server) {
-    server.connection({
-        port: 8088, 
-        host: '0.0.0.0'
-    })
+  /**
+   * Run http server
+   */
+  startServer() {    
+    const server = new Joy.Server()
+    server.connection({ host: '0.0.0.0', port: 8088 })
     server.route([{
-          method: 'GET',
-          path: '/',
-          handler: function(request, reply) {
-              reply.redirect('app.html')
-          }
-      },{ 
-          method: 'GET',
-          path: '/*',
-          handler: function(request, reply) {
-              reply.file(request.path)
-          }
-      }])
+        method: 'GET', path: '/',
+        handler: function(request, reply) {
+            reply.redirect('app.html')
+        }
+    },{ 
+        method: 'GET', path: '/*',
+        handler: function(request, reply) {
+            reply.file(request.path)
+        }
+    }])
     server.register([ 
-        /**
-         * plugins:
-         */
         {register: Static,  options: {base: `${DATADIR}/src/web`} }, 
-        {register: View,    options: {} }
-    ], (e) => {
-        if (e) throw e
-        
-        /** 
-         * initialize the templating engine 
-         */
-        server.views({  
-            path: `${DATADIR}/src/views`,
-            engines: {
-                liquid: (src, data={}) => Liquid.Template.parse(src).render(data) 
-            }
-        })
-        
-        /** 
-         * start the server 
-         */
-          let err = server.start()
-          if (err) throw err
-          this.setUrl(`http://${server.info.host}:${server.info.port}/`)
+    ], (err) => {
+        if (err) throw err
+        err = server.start()
+        if (err) throw err
+        this.setUrl(`http://${server.info.host}:${server.info.port}/`)
     })
-
-    
   }
-
 }
-

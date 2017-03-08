@@ -16,10 +16,11 @@ const {execSync} = require('child_process')
 const appName = require('./package.json').name
 const exeFile = `${appName}`
 const dskFile = `${appName}.desktop`
-const icoFile = `${appName}/${appName}.png`
+const icoFile = `${appName}/icon.jpg`
 const resFiles = [
-    // `${appName}/AppWindow.ui`,
-    // `${appName}/project.glade`
+    `${appName}/about.jpg`,
+    `${appName}/main.ui`,
+    `${appName}/Serpiente_alquimica.jpg`
 ]
 
 

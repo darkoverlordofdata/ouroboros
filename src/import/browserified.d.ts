@@ -1,4 +1,6 @@
-//browserify --standalone bundle src/node.js -o src/browserified.js
+/**
+ * Definitions for libraries imported via browserify
+ */
 
 declare module 'callable' {
     export function Callable(ctor, method?, args?)

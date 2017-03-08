@@ -4,7 +4,7 @@
   <requires lib="gtk+" version="3.10"/>
   <template class="Gjs_AppWindow" parent="GtkApplicationWindow">
     <property name="can_focus">False</property>
-    <property name="title" translatable="yes">Our Simple Browser</property>
+    <property name="title" translatable="yes">Ouroboros Browser</property>
     <property name="window_position">center</property>
     <property name="default_width">1000</property>
     <property name="default_height">600</property>
@@ -69,7 +69,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkScrolledWindow" id="scrolled">
+          <object class="GtkScrolledWindow" id="client">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="hscrollbar_policy">always</property>

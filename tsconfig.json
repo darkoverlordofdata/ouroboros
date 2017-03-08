@@ -24,9 +24,9 @@
     "node_modules/gir2dts/src/gjs.js",
     "node_modules/liquid.coffee/dist/liquid.coffee.d.ts",
     "node_modules/liquid.coffee/dist/liquid.coffee.js",
-    "src/browserified.d.ts",
-    "src/browserified.js",
-    "src/imports.ts",
+    "src/import/browserified.d.ts",
+    "src/import/browserified.js",
+    "src/import/gir.ts",
     "src/main.ts"
   ]
 }

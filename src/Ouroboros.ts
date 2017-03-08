@@ -4,6 +4,8 @@ import * as Gio from 'Gio'
 import {Util} from 'Util'
 import {AppWindow, IAppWindow} from 'AppWindow'
 
+const USER_DATA_DIR = GLib.get_user_data_dir()+'/ouroboros'
+
 const darkThemeDefault = "true"
 const themeNameDefault = "elementary"
 const configDefault = {
@@ -12,8 +14,6 @@ const configDefault = {
   themeName: themeNameDefault
 }
 
-
-const USER_DATA_DIR = GLib.get_user_data_dir()+'/ouroboros'
 /**
  * Ouroboros 
  *
@@ -33,7 +33,7 @@ export class Ouroboros {
         this.appWindow = new AppWindow({
           application: this.application,
         }, this)
-        this.buildUI()
+        this.buildUI(this.application)
         this.appWindow.setConfig(this.getConfig())
         this.appWindow.buildUI()
         this.window = this.appWindow.window
@@ -47,40 +47,24 @@ export class Ouroboros {
    *
    * main app menu
    */
-  buildUI() {
+  buildUI(application) {
     let menu = new Gio.Menu()
     menu.append(_("New"), 'app.new')
     menu.append(_("About"), 'app.about')
     menu.append(_("Quit"), 'app.quit')
+    application.set_app_menu(menu)
 
-    this.application.set_app_menu(menu)
-    let newAction = new Gio.SimpleAction({
-      name: 'new'
-    })
+    let newAction = new Gio.SimpleAction({ name: 'new' })
+    newAction.connect('activate', () => this.showNew())
+    application.add_action(newAction)
 
-    newAction.connect('activate', () => {
-      return this.showNew()
-    })
+    let aboutAction = new Gio.SimpleAction({ name: 'about' })
+    aboutAction.connect('activate', () => this.showAbout())
+    application.add_action(aboutAction)
 
-    this.application.add_action(newAction)
-    let aboutAction = new Gio.SimpleAction({
-      name: 'about'
-    })
-
-    aboutAction.connect('activate', () => {
-      return this.showAbout()
-    })
-
-    this.application.add_action(aboutAction)
-    let quitAction = new Gio.SimpleAction({
-      name: 'quit'
-    })
-
-    quitAction.connect('activate', () => {
-      return this.window.destroy()
-    })
-
-    this.application.add_action(quitAction)
+    let quitAction = new Gio.SimpleAction({ name: 'quit' })
+    quitAction.connect('activate', () => this.window.destroy())
+    application.add_action(quitAction)
   }
 
   /**
