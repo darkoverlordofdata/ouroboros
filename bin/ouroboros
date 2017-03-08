@@ -4278,8 +4278,12 @@ define("src/joy/Static", ["require", "exports", "Gio", "Soup", "src/joy/mimetype
     exports.Static = {
         register: function (server, options) {
             var cache = {};
+            server.decorate('server', 'reset', function (path) {
+                cache = {};
+                options.base = path;
+            });
             server.decorate('reply', 'file', function (path) {
-                var key = options.base + "/" + path;
+                var key = "" + options.base + path;
                 if (cache[key]) {
                     var data = cache[key];
                     this.request.msg.set_response(data.mimetype, Soup.MemoryUse.COPY, data.data, data.length);
@@ -4315,13 +4319,14 @@ define("src/joy/Static", ["require", "exports", "Gio", "Soup", "src/joy/mimetype
         version: '0.0.1'
     };
 });
-define("src/AppWindow", ["require", "exports", "Gtk", "WebKit", "src/joy/Joy", "src/Util", "src/joy/Static"], function (require, exports, Gtk, WebKit, Joy, Util_1, Static_1) {
+define("src/AppWindow", ["require", "exports", "Gtk", "Gio", "WebKit", "src/joy/Joy", "src/Util", "src/joy/Static"], function (require, exports, Gtk, Gio, WebKit, Joy, Util_1, Static_1) {
     "use strict";
     var DATADIR = '/home/bruce/gjs/ouroboros';
     var THEMES = [
         "elementary",
         "Adwaita"
     ];
+    var SPLASH = "<html><body style=\"background: url(Serpiente_alquimica.jpg) no-repeat center center fixed\"></body></html>";
     /**
      * Factory returns an anonymous implemention of the IAppWindow interface
      */
@@ -4452,9 +4457,13 @@ define("src/AppWindow", ["require", "exports", "Gtk", "WebKit", "src/joy/Joy", "
                 chooser.add_button(_("Cancel"), Gtk.ResponseType.CANCEL);
                 chooser.set_default_response(Gtk.ResponseType.OK);
                 chooser.connect("response", function (dialog, response) {
-                    //   this.projectPath = dialog.get_filenames()[0]
-                    //   dialog.destroy()
-                    //   return this.displayProject(this.projectPath)
+                    var filename = dialog.get_filenames()[0];
+                    dialog.destroy();
+                    var file = Gio.file_new_for_path(filename);
+                    _this.parent.setConfigValue('url', file.get_basename());
+                    _this.parent.setConfigValue('base', file.get_parent().get_path());
+                    _this.server['reset'](file.get_parent().get_path());
+                    _this.setUrl("http://" + _this.server.info.host + ":" + _this.server.info.port + "/" + file.get_basename());
                 });
                 return chooser.run();
             });
@@ -4465,12 +4474,12 @@ define("src/AppWindow", ["require", "exports", "Gtk", "WebKit", "src/joy/Joy", "
          */
         AppWindow.prototype.startServer = function () {
             var _this = this;
-            var server = new Joy.Server();
+            var server = this.server = new Joy.Server();
             server.connection({ host: '0.0.0.0', port: 8088 });
             server.route([{
                     method: 'GET', path: '/',
                     handler: function (request, reply) {
-                        reply.redirect('app.html');
+                        reply(SPLASH);
                     }
                 }, {
                     method: 'GET', path: '/*',
@@ -4479,14 +4488,14 @@ define("src/AppWindow", ["require", "exports", "Gtk", "WebKit", "src/joy/Joy", "
                     }
                 }]);
             server.register([
-                { register: Static_1.Static, options: { base: DATADIR + "/src/web" } },
+                { register: Static_1.Static, options: { base: this.config.base === '' ? DATADIR + "/src/web" : this.config.base } },
             ], function (err) {
                 if (err)
                     throw err;
                 err = server.start();
                 if (err)
                     throw err;
-                _this.setUrl("http://" + server.info.host + ":" + server.info.port + "/");
+                _this.setUrl("http://" + server.info.host + ":" + server.info.port + "/" + _this.config.url);
             });
         };
         return AppWindow;
@@ -4500,6 +4509,8 @@ define("src/Ouroboros", ["require", "exports", "GLib", "Gtk", "Gio", "src/Util",
     var themeNameDefault = "elementary";
     var configDefault = {
         appName: "Ouroboros",
+        url: '',
+        base: '',
         darkTheme: darkThemeDefault,
         themeName: themeNameDefault
     };
@@ -4560,9 +4571,9 @@ define("src/Ouroboros", ["require", "exports", "GLib", "Gtk", "Gio", "src/Util",
             about.set_transient_for(this.window);
             about.set_program_name(_("Ouroboros"));
             about.set_version(_("1.0"));
-            about.set_comments("If it's not dark, it's not data");
-            about.set_website("");
-            about.set_website_label("Dark Overlord of Data");
+            about.set_comments("By anonymous medieval illuminator;  Fol. 196 of Codex Parisinus graecus 2327, a copy (made by Theodoros Pelecanos (Pelekanos) of Corfu in Khandak, Iraklio, Crete in 1478) of a lost manuscript of an early medieval tract which was attributed to Synosius (Synesius) of Cyrene (d. 412).The text of the tract is attributed to Stephanus of Alexandria (7th century).cf.Public Domain,");
+            about.set_website("https://commons.wikimedia.org/w/index.php?curid=2856329");
+            about.set_website_label("source");
             about.set_authors(["bruce davidson"]);
             about.run();
             return about.destroy();
@@ -4605,6 +4616,16 @@ define("src/Ouroboros", ["require", "exports", "GLib", "Gtk", "Gio", "src/Util",
                 return;
             var gtkSettings = Gtk.Settings.get_default();
             switch (name) {
+                case 'base':
+                    config[name] = value;
+                    this.setConfig(config);
+                    this.appWindow.setConfig(config);
+                    break;
+                case 'url':
+                    config[name] = value;
+                    this.setConfig(config);
+                    this.appWindow.setConfig(config);
+                    break;
                 case 'darkTheme':
                     gtkSettings.gtk_application_prefer_dark_theme = value === 'true';
                     config[name] = value;

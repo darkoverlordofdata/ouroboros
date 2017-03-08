@@ -10,6 +10,8 @@ const darkThemeDefault = "true"
 const themeNameDefault = "elementary"
 const configDefault = {
   appName: "Ouroboros",
+  url: '',
+  base: '',
   darkTheme: darkThemeDefault,
   themeName: themeNameDefault
 }
@@ -84,9 +86,9 @@ export class Ouroboros {
     about.set_transient_for(this.window)
     about.set_program_name(_("Ouroboros"))
     about.set_version(_("1.0"))
-    about.set_comments("If it's not dark, it's not data")
-    about.set_website("")
-    about.set_website_label("Dark Overlord of Data")
+    about.set_comments("By anonymous medieval illuminator;  Fol. 196 of Codex Parisinus graecus 2327, a copy (made by Theodoros Pelecanos (Pelekanos) of Corfu in Khandak, Iraklio, Crete in 1478) of a lost manuscript of an early medieval tract which was attributed to Synosius (Synesius) of Cyrene (d. 412).The text of the tract is attributed to Stephanus of Alexandria (7th century).cf.Public Domain,")
+    about.set_website("https://commons.wikimedia.org/w/index.php?curid=2856329")
+    about.set_website_label("source")
     about.set_authors(["bruce davidson"])
     about.run()
     return about.destroy()
@@ -132,6 +134,19 @@ export class Ouroboros {
     if (config[name] === value) return
     let gtkSettings = Gtk.Settings.get_default()
     switch(name) {
+
+      case 'base': 
+        config[name] = value
+        this.setConfig(config)
+        this.appWindow.setConfig(config)
+        break
+      
+      case 'url': 
+        config[name] = value
+        this.setConfig(config)
+        this.appWindow.setConfig(config)
+        break
+
       case 'darkTheme':
         gtkSettings.gtk_application_prefer_dark_theme = value === 'true'
         config[name] = value

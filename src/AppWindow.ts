@@ -15,6 +15,7 @@ const THEMES = [
   "Adwaita"
 ]
 
+const SPLASH = `<html><body style="background: url(Serpiente_alquimica.jpg) no-repeat center center fixed"></body></html>`
 /**
  * Factory returns an anonymous implemention of the IAppWindow interface
  */
@@ -47,6 +48,7 @@ export class AppWindow {
   headerbar: Gtk.HeaderBar
   parent: Ouroboros
   webView: WebKit.WebView
+  server: Joy.Server
 
   /**
    * Load the glade template
@@ -102,7 +104,6 @@ export class AppWindow {
   setUrl(url: string) {
     this.webView.load_uri(url)
     this.window.url.set_text(url)
-    
   }
 
   /**
@@ -176,9 +177,13 @@ export class AppWindow {
         chooser.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
         chooser.set_default_response(Gtk.ResponseType.OK)
         chooser.connect("response", (dialog, response) => {
-        //   this.projectPath = dialog.get_filenames()[0]
-        //   dialog.destroy()
-        //   return this.displayProject(this.projectPath)
+          let filename = dialog.get_filenames()[0]
+          dialog.destroy()
+          let file = Gio.file_new_for_path(filename)
+          this.parent.setConfigValue('url', file.get_basename())
+          this.parent.setConfigValue('base', file.get_parent().get_path())
+          this.server['reset'](file.get_parent().get_path())
+          this.setUrl(`http://${this.server.info.host}:${this.server.info.port}/${file.get_basename()}`)
         })
         return chooser.run()
     })
@@ -189,12 +194,12 @@ export class AppWindow {
    * Run http server
    */
   startServer() {    
-    const server = new Joy.Server()
+    const server = this.server = new Joy.Server()
     server.connection({ host: '0.0.0.0', port: 8088 })
     server.route([{
         method: 'GET', path: '/',
         handler: function(request, reply) {
-            reply.redirect('app.html')
+            reply(SPLASH)
         }
     },{ 
         method: 'GET', path: '/*',
@@ -203,12 +208,12 @@ export class AppWindow {
         }
     }])
     server.register([ 
-        {register: Static,  options: {base: `${DATADIR}/src/web`} }, 
+        {register: Static,  options: {base: this.config.base === '' ? `${DATADIR}/src/web` : this.config.base } }, 
     ], (err) => {
         if (err) throw err
         err = server.start()
         if (err) throw err
-        this.setUrl(`http://${server.info.host}:${server.info.port}/`)
+        this.setUrl(`http://${server.info.host}:${server.info.port}/${this.config.url}`)
     })
   }
 }

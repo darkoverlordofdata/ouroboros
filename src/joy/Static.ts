@@ -10,10 +10,15 @@ import {mimetypes} from 'mimetypes'
  */
 export const Static = { /** plugin - serve static content */
     register(server, options) {
-        const cache = {}
+        let cache = {}
+
+        server.decorate('server', 'reset', function(path){
+            cache = {}
+            options.base = path
+        })
 
         server.decorate('reply', 'file', function(path) {
-            const key = `${options.base}/${path}`
+            const key = `${options.base}${path}`
             if (cache[key]) {
                 let data = cache[key] 
                 this.request.msg.set_response(data.mimetype, Soup.MemoryUse.COPY, data.data, data.length)
