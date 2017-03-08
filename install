@@ -1,0 +1,85 @@
+#!/usr/bin/env node
+const fs = require('fs')
+const os = require('os')
+const {execSync} = require('child_process')
+/**
+ * Install:
+ *  copy files to prefix location and
+ *  patch references to prefix locations
+ *
+ *   copy executable to ~/.local/bin
+ *   copy resources to ~/.local/share/${appName}
+ *   copy .desktop to ~/.local/share/applications
+ * 
+ */
+
+const appName = require('./package.json').name
+const exeFile = `${appName}`
+const dskFile = `${appName}.desktop`
+const icoFile = `${appName}/${appName}.png`
+const resFiles = [
+    // `${appName}/AppWindow.ui`,
+    // `${appName}/project.glade`
+]
+
+
+//
+//  prefix = ~/.local
+//
+const prefix = `${os.homedir()}/.local`
+
+//
+//  Make sure the application folder exists
+//
+if (!fs.existsSync(`${prefix}/share/${appName}`))
+    fs.mkdirSync(`${prefix}/share/${appName}`)
+
+
+//
+//  patch the data prefix, add a shebang
+//
+let source = fs.readFileSync(`bin/${exeFile}`, {encoding: 'utf8'})
+source = source.replace(/var DATADIR = \".*\"/g, `const DATADIR = \"${prefix}/share/${appName}\"`)
+fs.writeFileSync(`${prefix}/bin/${exeFile}`, `#!/usr/bin/env gjs\n`+source)
+
+//
+//  set the executable bit
+//
+execSync(`chmod +x ${prefix}/bin/${exeFile}`)
+
+//
+//  patch the .desktop prefix
+//
+lines = fs.readFileSync(`share/applications/${dskFile}`, {encoding: 'utf8'}).split('\n')
+let out = []
+for (let line of lines) {
+    let [key,value] = line.split('=')
+    if (value != null) 
+        switch (key) {
+            case 'Exec': out.push(`Exec=${prefix}/bin/${exeFile}`); break
+            case 'Icon': out.push(`Icon=${prefix}/share/${icoFile}`); break
+            default: out.push(line)
+        }
+    else 
+        out.push(line)
+    
+}
+fs.writeFileSync(`${prefix}/share/applications/${dskFile}`, out.join('\n'))
+
+//
+//  set the executable bit
+//
+execSync(`chmod +x ${prefix}/share/applications/${dskFile}`)
+
+//
+// copy the icon 
+//
+execSync(`cp share/${icoFile} ${prefix}/share/${appName}`)
+
+//
+// just copy the resources 
+//
+for (let file of resFiles) 
+    execSync(`cp share/${file} ${prefix}/share/${appName}`)
+
+

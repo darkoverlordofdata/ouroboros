@@ -3914,10 +3914,53 @@ define.imports({
     Soup: imports.gi.Soup,
     WebKit: imports.gi.WebKit
 });
-define("src/Joy", ["require", "exports", "Gtk", "Gio", "Soup", "callable"], function (require, exports, Gtk, Gio, Soup, callable) {
+define("src/Util", ["require", "exports", "Gio", "Lang"], function (require, exports, Gio, Lang) {
     "use strict";
-    var Route = require('Route');
-    /** Joy!!! */
+    var Util = (function () {
+        function Util() {
+        }
+        Util.readFile = function (filename) {
+            var file = Gio.file_new_for_path(filename);
+            if (file.query_exists(null)) {
+                var _a = file.load_contents(null), success = _a[0], data = _a[1], length_1 = _a[2];
+                return data;
+            }
+            else {
+                return null;
+            }
+        };
+        Util.mkdir = function (foldername) {
+            var file = Gio.file_new_for_path(foldername);
+            if (!file.query_exists(null)) {
+                print("folder not found " + foldername);
+                file.make_directory(null);
+            }
+        };
+        Util.writeFile = function (filename, data) {
+            var file = Gio.file_new_for_path(filename);
+            if (file.query_exists(null))
+                file.delete(null);
+            var file_stream = file.create(Gio.FileCreateFlags.NONE, null);
+            var data_stream = new Gio.DataOutputStream({ base_stream: file_stream });
+            data_stream.put_string(data, null);
+        };
+        Util.loadTemplate = function (template) {
+            return Lang.Class({
+                Name: template.name,
+                Extends: template.extends,
+                Template: Util.readFile(template.path),
+                Children: template.fields,
+                _init: function (params) {
+                    return this.parent(params);
+                }
+            });
+        };
+        return Util;
+    }());
+    exports.Util = Util;
+});
+define("src/joy/Request", ["require", "exports"], function (require, exports) {
+    "use strict";
     /**
      * Request Object
      *
@@ -3948,6 +3991,11 @@ define("src/Joy", ["require", "exports", "Gtk", "Gio", "Soup", "callable"], func
         };
         return Request;
     }());
+    exports.Request = Request;
+});
+define("src/joy/Response", ["require", "exports", "Soup", "callable"], function (require, exports, Soup, callable) {
+    "use strict";
+    /** Joy!!! */
     /**
      * Response Object Implementation
      *
@@ -3973,6 +4021,7 @@ define("src/Joy", ["require", "exports", "Gtk", "Gio", "Soup", "callable"], func
         };
         return ResponseImpl;
     }());
+    exports.ResponseImpl = ResponseImpl;
     /**
      * Callable proxy for the Response Implementation
      *
@@ -3981,9 +4030,15 @@ define("src/Joy", ["require", "exports", "Gtk", "Gio", "Soup", "callable"], func
      * reply.file('index.html')
      *
      */
-    var Response = callable.factory(ResponseImpl);
+    exports.Response = callable.factory(ResponseImpl);
+});
+define("src/joy/Joy", ["require", "exports", "Soup", "src/joy/Request", "src/joy/Response"], function (require, exports, Soup, Request_1, Response_1) {
+    "use strict";
+    var Route = require('Route');
     /**
-     * Hapi style plugin wrapper for Soup.Server
+     * Joy!!!
+     *
+     * A Hapi style plugin wrapper and router for Soup.Server
      */
     var Server = (function () {
         function Server() {
@@ -4046,10 +4101,10 @@ define("src/Joy", ["require", "exports", "Gtk", "Gio", "Soup", "callable"], func
                     Server.prototype[property] = method;
                     return;
                 case 'request':
-                    Request.prototype[property] = method;
+                    Request_1.Request.prototype[property] = method;
                     return;
                 case 'reply':
-                    ResponseImpl.prototype[property] = method;
+                    Response_1.ResponseImpl.prototype[property] = method;
                     return;
             }
         };
@@ -4057,167 +4112,27 @@ define("src/Joy", ["require", "exports", "Gtk", "Gio", "Soup", "callable"], func
          * Start serving
          * @param next
          */
-        Server.prototype.start = function (next) {
+        Server.prototype.start = function () {
             var _this = this;
-            this.app = new Gtk.Application({ application_id: this.info.application_id, flags: Gio.ApplicationFlags.FLAGS_NONE });
-            this.app.connect('activate', function () {
-                _this.srv = new Soup.Server();
-                _this.srv.add_handler(null, function (srv, msg, path, query, client) {
-                    var request = new Request(srv, msg, path, query, client);
-                    for (var i in _this.routes) {
-                        var route = _this.routes[i];
-                        if (request.match(route)) {
-                            var reply = new Response(request);
-                            route.handler.call(_this, request, reply);
-                            return;
-                        }
+            this.srv = new Soup.Server();
+            this.srv.add_handler(null, function (srv, msg, path, query, client) {
+                var request = new Request_1.Request(srv, msg, path, query, client);
+                for (var i in _this.routes) {
+                    var route = _this.routes[i];
+                    if (request.match(route)) {
+                        var reply = new Response_1.Response(request);
+                        route.handler.call(_this, request, reply);
+                        return;
                     }
-                }, null, null);
-                next(!_this.srv.listen_all(_this.info.port, 0));
-            });
-            this.app.run(null);
+                }
+            }, null, null);
+            return !this.srv.listen_all(this.info.port, 0);
         };
         return Server;
     }());
     exports.Server = Server;
 });
-define("src/mimetypes", ["require", "exports"], function (require, exports) {
-    "use strict";
-    exports.mimetypes = {
-        'hqx': 'application/mac-binhex40',
-        'cpt': 'application/mac-compactpro',
-        'csv': ['text/x-comma-separated-values', 'text/comma-separated-values', 'application/octet-stream', 'application/vnd.ms-excel', 'text/x-csv', 'text/csv', 'application/csv', 'application/excel', 'application/vnd.msexcel'],
-        'bin': 'application/macbinary',
-        'dms': 'application/octet-stream',
-        'lha': 'application/octet-stream',
-        'lzh': 'application/octet-stream',
-        'exe': ['application/octet-stream', 'application/x-msdownload'],
-        'class': 'application/octet-stream',
-        'psd': 'application/x-photoshop',
-        'so': 'application/octet-stream',
-        'sea': 'application/octet-stream',
-        'dll': 'application/octet-stream',
-        'oda': 'application/oda',
-        'pdf': ['application/pdf', 'application/x-download'],
-        'ai': 'application/postscript',
-        'eps': 'application/postscript',
-        'ps': 'application/postscript',
-        'smi': 'application/smil',
-        'smil': 'application/smil',
-        'mif': 'application/vnd.mif',
-        'xls': ['application/excel', 'application/vnd.ms-excel', 'application/msexcel'],
-        'ppt': ['application/powerpoint', 'application/vnd.ms-powerpoint'],
-        'wbxml': 'application/wbxml',
-        'wmlc': 'application/wmlc',
-        'dcr': 'application/x-director',
-        'dir': 'application/x-director',
-        'dxr': 'application/x-director',
-        'dvi': 'application/x-dvi',
-        'gtar': 'application/x-gtar',
-        'gz': 'application/x-gzip',
-        'php': 'application/x-httpd-php',
-        'php4': 'application/x-httpd-php',
-        'php3': 'application/x-httpd-php',
-        'phtml': 'application/x-httpd-php',
-        'phps': 'application/x-httpd-php-source',
-        'js': ['text/javascript', 'application/x-javascript'],
-        'swf': 'application/x-shockwave-flash',
-        'sit': 'application/x-stuffit',
-        'tar': 'application/x-tar',
-        'tgz': ['application/x-tar', 'application/x-gzip-compressed'],
-        'xhtml': 'application/xhtml+xml',
-        'xht': 'application/xhtml+xml',
-        'zip': ['application/x-zip', 'application/zip', 'application/x-zip-compressed'],
-        'mid': 'audio/midi',
-        'midi': 'audio/midi',
-        'mpga': 'audio/mpeg',
-        'mp2': 'audio/mpeg',
-        'mp3': ['audio/mpeg', 'audio/mpg', 'audio/mpeg3', 'audio/mp3'],
-        'aif': 'audio/x-aiff',
-        'aiff': 'audio/x-aiff',
-        'aifc': 'audio/x-aiff',
-        'ram': 'audio/x-pn-realaudio',
-        'rm': 'audio/x-pn-realaudio',
-        'rpm': 'audio/x-pn-realaudio-plugin',
-        'ra': 'audio/x-realaudio',
-        'rv': 'video/vnd.rn-realvideo',
-        'wav': 'audio/x-wav',
-        'bmp': 'image/bmp',
-        'gif': 'image/gif',
-        'jpeg': ['image/jpeg', 'image/pjpeg'],
-        'jpg': ['image/jpeg', 'image/pjpeg'],
-        'jpe': ['image/jpeg', 'image/pjpeg'],
-        'png': ['image/png', 'image/x-png'],
-        'tiff': 'image/tiff',
-        'tif': 'image/tiff',
-        'css': 'text/css',
-        'html': 'text/html',
-        'htm': 'text/html',
-        'shtml': 'text/html',
-        'txt': 'text/plain',
-        'text': 'text/plain',
-        'log': ['text/plain', 'text/x-log'],
-        'rtx': 'text/richtext',
-        'rtf': 'text/rtf',
-        'xml': 'text/xml',
-        'xsl': 'text/xml',
-        'mpeg': 'video/mpeg',
-        'mpg': 'video/mpeg',
-        'mpe': 'video/mpeg',
-        'qt': 'video/quicktime',
-        'mov': 'video/quicktime',
-        'avi': 'video/x-msvideo',
-        'movie': 'video/x-sgi-movie',
-        'doc': 'application/msword',
-        'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'word': ['application/msword', 'application/octet-stream'],
-        'xl': 'application/excel',
-        'eml': 'message/rfc822',
-        'json': ['application/json', 'text/json'],
-        'ogg': 'audio/ogg'
-    };
-});
-define("src/View", ["require", "exports", "Gio", "Soup"], function (require, exports, Gio, Soup) {
-    "use strict";
-    /**
-     * Views Plugin
-     *
-     * serve templated content
-     */
-    exports.View = {
-        register: function (server, options) {
-            server.decorate('server', 'views', function (options) {
-                server.root = options.path;
-                for (var key in options.engines) {
-                    this.engines[key] = options.engines[key];
-                }
-            });
-            server.decorate('reply', 'view', function (view, locals) {
-                if (locals === void 0) { locals = {}; }
-                var file = Gio.file_new_for_path(server.root + "/" + view);
-                if (file.query_exists(null)) {
-                    var _a = file.load_contents(null), success = _a[0], text = _a[1], length_1 = _a[2];
-                    if (success) {
-                        var ext = view.split('.').pop();
-                        var engine = server.engines[ext];
-                        var page = engine ? engine(String(text), locals) : String(text);
-                        this.request.msg.set_response("text/html", Soup.MemoryUse.COPY, page, page.length);
-                        this.request.msg.set_status(200);
-                    }
-                }
-            });
-        }
-    };
-    /**
-     * Registration data
-     */
-    exports.View.register['attributes'] = {
-        name: 'View',
-        version: '0.0.1'
-    };
-});
-define("src/mimes", ["require", "exports"], function (require, exports) {
+define("src/joy/mimetypes", ["require", "exports"], function (require, exports) {
     "use strict";
     // Generated by CoffeeScript 1.11.1
     exports.mimetypes = {
@@ -4314,7 +4229,46 @@ define("src/mimes", ["require", "exports"], function (require, exports) {
         'json': ['application/json', 'text/json']
     };
 });
-define("src/Static", ["require", "exports", "Gio", "Soup", "src/mimes"], function (require, exports, Gio, Soup, mimes_1) {
+define("src/joy/View", ["require", "exports", "Gio", "Soup"], function (require, exports, Gio, Soup) {
+    "use strict";
+    /**
+     * Views Plugin
+     *
+     * serve templated content
+     */
+    exports.View = {
+        register: function (server, options) {
+            server.decorate('server', 'views', function (options) {
+                server.root = options.path;
+                for (var key in options.engines) {
+                    this.engines[key] = options.engines[key];
+                }
+            });
+            server.decorate('reply', 'view', function (view, locals) {
+                if (locals === void 0) { locals = {}; }
+                var file = Gio.file_new_for_path(server.root + "/" + view);
+                if (file.query_exists(null)) {
+                    var _a = file.load_contents(null), success = _a[0], text = _a[1], length_2 = _a[2];
+                    if (success) {
+                        var ext = view.split('.').pop();
+                        var engine = server.engines[ext];
+                        var page = engine ? engine(String(text), locals) : String(text);
+                        this.request.msg.set_response("text/html", Soup.MemoryUse.COPY, page, page.length);
+                        this.request.msg.set_status(200);
+                    }
+                }
+            });
+        }
+    };
+    /**
+     * Registration data
+     */
+    exports.View.register['attributes'] = {
+        name: 'View',
+        version: '0.0.1'
+    };
+});
+define("src/joy/Static", ["require", "exports", "Gio", "Soup", "src/joy/mimetypes"], function (require, exports, Gio, Soup, mimetypes_1) {
     "use strict";
     /**
      * Static Plugin
@@ -4334,16 +4288,16 @@ define("src/Static", ["require", "exports", "Gio", "Soup", "src/mimes"], functio
                 }
                 var file = Gio.file_new_for_path(key);
                 if (file.query_exists(null)) {
-                    var _a = file.load_contents(null), success = _a[0], data = _a[1], length_2 = _a[2];
+                    var _a = file.load_contents(null), success = _a[0], data = _a[1], length_3 = _a[2];
                     if (success) {
                         var ext = this.request.path.split('.').pop();
-                        var mimetype = (mimes_1.mimetypes[ext])
-                            ? typeof mimes_1.mimetypes[ext] === 'string'
-                                ? mimes_1.mimetypes[ext]
-                                : mimes_1.mimetypes[ext][0]
+                        var mimetype = (mimetypes_1.mimetypes[ext])
+                            ? typeof mimetypes_1.mimetypes[ext] === 'string'
+                                ? mimetypes_1.mimetypes[ext]
+                                : mimetypes_1.mimetypes[ext][0]
                             : "text/html";
-                        cache[key] = { mimetype: mimetype, data: data, length: length_2 };
-                        this.request.msg.set_response(mimetype, Soup.MemoryUse.COPY, data, length_2);
+                        cache[key] = { mimetype: mimetype, data: data, length: length_3 };
+                        this.request.msg.set_response(mimetype, Soup.MemoryUse.COPY, data, length_3);
                         this.request.msg.set_status(200);
                     }
                 }
@@ -4361,43 +4315,13 @@ define("src/Static", ["require", "exports", "Gio", "Soup", "src/mimes"], functio
         version: '0.0.1'
     };
 });
-define("src/test_data", ["require", "exports"], function (require, exports) {
+define("src/AppWindow", ["require", "exports", "Gtk", "WebKit", "Liquid", "src/joy/Joy", "src/Util", "src/joy/View", "src/joy/Static"], function (require, exports, Gtk, WebKit, Liquid, Joy, Util_1, View_1, Static_1) {
     "use strict";
-    var ProuctsFilter = (function () {
-        function ProuctsFilter() {
-        }
-        /* bug? filter not called in assign  */
-        ProuctsFilter.concat = function (input, array) {
-            return [];
-            // print('CONCAT ')
-            // return input.concat(array)
-        };
-        ProuctsFilter.price = function (integer) {
-            return "$%.2d USD".format(integer / 100.0);
-        };
-        ProuctsFilter.prettyprint = function (text) {
-            return text.replace(/\*(.*)\*/, "<b>$1</b>");
-        };
-        ProuctsFilter.count = function (array) {
-            return array.length;
-        };
-        ProuctsFilter.paragraph = function (p) {
-            return "<p>" + p + "</p>";
-        };
-        return ProuctsFilter;
-    }());
-    exports.ProuctsFilter = ProuctsFilter;
-    exports.data = {
-        products: [{ 'name': 'Arbor Draft', 'price': 39900, 'description': 'the *arbor draft* is a excellent product' },
-            { 'name': 'Arbor Element', 'price': 40000, 'description': 'the *arbor element* rocks for freestyling' }],
-        more_products: [{ 'name': 'Arbor Diamond', 'price': 59900, 'description': 'the *arbor diamond* is a made up product because im obsessed with arbor and have no creativity' },
-            { 'name': 'Arbor Catalyst', 'price': 39900, 'description': 'the *arbor catalyst* is an advanced drop-through for freestyle and flatground performance and versatility' },
-            { 'name': 'Arbor Fish', 'price': 40000, 'description': 'the *arbor fish* is a compact pin that features an extended wheelbase and time-honored teardrop shape' }],
-        description: "List of Products ~ This is a list of products with price and description."
-    };
-});
-define("src/main", ["require", "exports", "Gtk", "src/Joy", "Liquid", "WebKit", "src/View", "src/Static", "src/test_data"], function (require, exports, Gtk, Joy, Liquid, WebKit, View_1, Static_1, test_data_1) {
-    "use strict";
+    var DATADIR = '/home/bruce/gjs/ouroboros';
+    var THEMES = [
+        "elementary",
+        "Adwaita"
+    ];
     /**
      * Routes
      */
@@ -4405,13 +4329,7 @@ define("src/main", ["require", "exports", "Gtk", "src/Joy", "Liquid", "WebKit", 
             method: 'GET',
             path: '/',
             handler: function (request, reply) {
-                reply.file('app.html');
-            }
-        }, {
-            method: 'GET',
-            path: '/test',
-            handler: function (request, reply) {
-                reply.view('test.liquid', test_data_1.data);
+                reply.redirect('app.html');
             }
         }, {
             method: 'GET',
@@ -4420,64 +4338,326 @@ define("src/main", ["require", "exports", "Gtk", "src/Joy", "Liquid", "WebKit", 
                 reply.file(request.path);
             }
         }];
-    Gtk.init(null);
-    var server = new Joy.Server();
-    server.connection({
-        port: 8088,
-        host: '0.0.0.0',
-        application_id: 'com.darkoverlordofdata.ouroboros'
-    });
-    server.route(routes);
-    server.register([
-        /**
-         * plugins:
-         */
-        { register: Static_1.Static, options: { base: '../src/web' } },
-        { register: View_1.View, options: {} }
-    ], function (err) {
-        if (err)
-            throw err;
-        Liquid.Template.registerFilter(test_data_1.ProuctsFilter);
-        /**
-         * initialize the templating engine
-         */
-        server.views({
-            path: '../src/views',
-            engines: {
-                liquid: function (src, data) {
-                    if (data === void 0) { data = {}; }
-                    return Liquid.Template.parse(src).render(data);
-                }
-            }
+    /**
+     * Factory returns an anonymous implemention of the IAppWindow interface
+     */
+    function AppWindowFactory() {
+        return Util_1.Util.loadTemplate({
+            name: 'AppWindow',
+            extends: Gtk.ApplicationWindow,
+            fields: ['background', 'back', 'refresh', 'url', 'scrolled', 'status'],
+            path: DATADIR + "/share/ouroboros/main.ui"
         });
+    }
+    /**
+     * Top level Application
+     */
+    var AppWindow = (function () {
         /**
-         * start the server
+         * Load the glade template
          */
-        server.start(function (err) {
-            if (err)
-                throw err;
-            var gtkSettings = Gtk.Settings.get_default();
-            gtkSettings.gtk_application_prefer_dark_theme = true;
-            var webView = new WebKit.WebView();
-            var scrollWindow = new Gtk.ScrolledWindow({});
-            var vbox = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL });
-            scrollWindow.add(webView);
-            vbox.pack_start(scrollWindow, true, true, 0);
-            var window = new Gtk.Window({
-                title: 'Orobouros',
-                type: Gtk.WindowType.TOPLEVEL,
-                window_position: Gtk.WindowPosition.CENTER
+        function AppWindow(params, parent) {
+            this.parent = parent;
+            this.window = new (AppWindowFactory())(params);
+            Gtk.Window.set_default_icon_from_file(DATADIR + "/share/ouroboros/bosco.png");
+        }
+        AppWindow.prototype.setConfig = function (config) {
+            this.config = config;
+        };
+        /**
+         * buildUI
+         *
+         * @param config
+         */
+        AppWindow.prototype.buildUI = function () {
+            var _this = this;
+            this.headerbar = new Gtk.HeaderBar({
+                title: this.config.appName,
+                show_close_button: true
             });
-            // configure client window
-            window.set_default_size(1024, 720);
-            window.set_resizable(true);
-            window.connect('destroy', function () { return Gtk.main_quit(); });
-            window.connect('delete_event', function () { return false; });
-            window.add(vbox);
-            window.show_all();
-            // print(`Server running at: http://${server.info.host}:${server.info.port}/`)
-            webView.load_uri("http://" + server.info.host + ":" + server.info.port + "/");
-        });
-    });
-    Gtk.main();
+            this.headerbar.pack_start(this.buildOpen());
+            this.headerbar.pack_start(this.buildPreferences());
+            var webView = this.webView = new WebKit.WebView();
+            this.window.scrolled.add(this.webView);
+            this.window.back.connect('clicked', function (button) { return webView.go_back(); });
+            this.window.refresh.connect('clicked', function (button) { return webView.reload(); });
+            this.window.url.connect('activate', function (button) { return webView.load_uri(_this.window.url.get_text()); });
+            this.server = new Joy.Server();
+            this.startServer(this.server);
+            this.window.set_default_size(1040, 740);
+            this.window.set_titlebar(this.headerbar);
+            return this.window.show_all();
+        };
+        AppWindow.prototype.setUrl = function (url) {
+            this.webView.load_uri(url);
+            this.window.url.set_text(url);
+        };
+        AppWindow.prototype.buildPreferences = function () {
+            var _this = this;
+            // Add options to set the name and the prefix
+            var grid = new Gtk.Grid({
+                column_spacing: 10,
+                row_spacing: 10,
+                margin: 10
+            });
+            grid.set_column_homogeneous(true);
+            var darkLabel = new Gtk.Label({ label: "Dark theme:" });
+            darkLabel.set_halign(Gtk.Align.END);
+            var darkEntry = new Gtk.Switch({
+                state: this.config.darkTheme === 'true',
+                valign: Gtk.Align.CENTER
+            });
+            darkEntry.connect('state-set', function () { return _this.parent.setConfigValue('darkTheme', darkEntry.get_active().toString()); });
+            grid.attach(darkLabel, 0, 0, 1, 1);
+            grid.attach_next_to(darkEntry, darkLabel, Gtk.PositionType.RIGHT, 2, 1);
+            var themeLabel = new Gtk.Label({ label: "Theme name:" });
+            themeLabel.set_halign(Gtk.Align.END);
+            var themeSelect = new Gtk.ComboBoxText();
+            THEMES.forEach(function (theme, i) { return themeSelect.insert(i, theme, theme); });
+            themeSelect.set_active_id(this.config.themeName);
+            themeSelect.connect('changed', function () { return _this.parent.setConfigValue('themeName', themeSelect.get_active_text()); });
+            grid.attach(themeLabel, 0, 1, 1, 1);
+            grid.attach_next_to(themeSelect, themeLabel, Gtk.PositionType.RIGHT, 2, 1);
+            var menubutton = new Gtk.ToggleButton();
+            menubutton.add(new Gtk.Image({
+                icon_name: "open-menu-symbolic",
+                icon_size: Gtk.IconSize.SMALL_TOOLBAR
+            }));
+            var menu = new Gtk.Popover();
+            menu.set_relative_to(menubutton);
+            menu.connect("closed", function () { return menubutton.get_active() ? menubutton.set_active(false) : null; });
+            menubutton.connect("clicked", function () { return menubutton.get_active() ? menu.show_all() : null; });
+            menu.add(grid);
+            return menubutton;
+        };
+        /**
+         * build open site button
+         *
+         * @param config
+         */
+        AppWindow.prototype.buildOpen = function () {
+            var _this = this;
+            var openButton = new Gtk.Button();
+            openButton.add(new Gtk.Image({
+                icon_name: "document-open-symbolic",
+                icon_size: Gtk.IconSize.SMALL_TOOLBAR
+            }));
+            openButton.connect("clicked", function () {
+                var chooser = new Gtk.FileChooserDialog({
+                    title: _("Select Project File"),
+                    action: Gtk.FileChooserAction.OPEN,
+                    transient_for: _this.window,
+                    modal: true
+                });
+                chooser.set_select_multiple(false);
+                chooser.add_button(_("Open"), Gtk.ResponseType.OK);
+                chooser.add_button(_("Cancel"), Gtk.ResponseType.CANCEL);
+                chooser.set_default_response(Gtk.ResponseType.OK);
+                chooser.connect("response", function (dialog, response) {
+                    //   this.projectPath = dialog.get_filenames()[0]
+                    //   dialog.destroy()
+                    //   return this.displayProject(this.projectPath)
+                });
+                return chooser.run();
+            });
+            return openButton;
+        };
+        AppWindow.prototype.startServer = function (server) {
+            var _this = this;
+            server.connection({
+                port: 8088,
+                host: '0.0.0.0'
+            });
+            server.route([{
+                    method: 'GET',
+                    path: '/',
+                    handler: function (request, reply) {
+                        reply.redirect('app.html');
+                    }
+                }, {
+                    method: 'GET',
+                    path: '/*',
+                    handler: function (request, reply) {
+                        reply.file(request.path);
+                    }
+                }]);
+            server.register([
+                /**
+                 * plugins:
+                 */
+                { register: Static_1.Static, options: { base: DATADIR + "/src/web" } },
+                { register: View_1.View, options: {} }
+            ], function (e) {
+                if (e)
+                    throw e;
+                /**
+                 * initialize the templating engine
+                 */
+                server.views({
+                    path: DATADIR + "/src/views",
+                    engines: {
+                        liquid: function (src, data) {
+                            if (data === void 0) { data = {}; }
+                            return Liquid.Template.parse(src).render(data);
+                        }
+                    }
+                });
+                /**
+                 * start the server
+                 */
+                var err = server.start();
+                if (err)
+                    throw err;
+                _this.setUrl("http://" + server.info.host + ":" + server.info.port + "/");
+            });
+        };
+        return AppWindow;
+    }());
+    exports.AppWindow = AppWindow;
+});
+define("src/Ouroboros", ["require", "exports", "GLib", "Gtk", "Gio", "src/Util", "src/AppWindow"], function (require, exports, GLib, Gtk, Gio, Util_2, AppWindow_1) {
+    "use strict";
+    var darkThemeDefault = "true";
+    var themeNameDefault = "elementary";
+    var configDefault = {
+        appName: "Ouroboros",
+        darkTheme: darkThemeDefault,
+        themeName: themeNameDefault
+    };
+    var USER_DATA_DIR = GLib.get_user_data_dir() + '/ouroboros';
+    /**
+     * Ouroboros
+     *
+     * top level application object
+     */
+    var Ouroboros = (function () {
+        function Ouroboros() {
+            var _this = this;
+            this.application = new Gtk.Application({ flags: Gio.ApplicationFlags.FLAGS_NONE });
+            this.application.connect('activate', function () {
+                _this.appWindow = new AppWindow_1.AppWindow({
+                    application: _this.application,
+                }, _this);
+                _this.buildUI();
+                _this.appWindow.setConfig(_this.getConfig());
+                _this.appWindow.buildUI();
+                _this.window = _this.appWindow.window;
+                _this.window.present();
+            });
+        }
+        /**
+         * build the Gio.Application Menu
+         *
+         * main app menu
+         */
+        Ouroboros.prototype.buildUI = function () {
+            var _this = this;
+            var menu = new Gio.Menu();
+            menu.append(_("New"), 'app.new');
+            menu.append(_("About"), 'app.about');
+            menu.append(_("Quit"), 'app.quit');
+            this.application.set_app_menu(menu);
+            var newAction = new Gio.SimpleAction({
+                name: 'new'
+            });
+            newAction.connect('activate', function () {
+                return _this.showNew();
+            });
+            this.application.add_action(newAction);
+            var aboutAction = new Gio.SimpleAction({
+                name: 'about'
+            });
+            aboutAction.connect('activate', function () {
+                return _this.showAbout();
+            });
+            this.application.add_action(aboutAction);
+            var quitAction = new Gio.SimpleAction({
+                name: 'quit'
+            });
+            quitAction.connect('activate', function () {
+                return _this.window.destroy();
+            });
+            this.application.add_action(quitAction);
+        };
+        /**
+         * New project dialog
+         */
+        Ouroboros.prototype.showNew = function () {
+            return print("Not implemented");
+        };
+        /**
+         * About dialog
+         */
+        Ouroboros.prototype.showAbout = function () {
+            var about = new Gtk.AboutDialog();
+            about.set_logo_icon_name(null);
+            about.set_transient_for(this.window);
+            about.set_program_name(_("Ouroboros"));
+            about.set_version(_("1.0"));
+            about.set_comments("If it's not dark, it's not data");
+            about.set_website("");
+            about.set_website_label("Dark Overlord of Data");
+            about.set_authors(["bruce davidson"]);
+            about.run();
+            return about.destroy();
+        };
+        /**
+         * load configuration
+         */
+        Ouroboros.prototype.getConfig = function () {
+            Util_2.Util.mkdir(USER_DATA_DIR);
+            var data = Util_2.Util.readFile(USER_DATA_DIR + '/config.json');
+            var isNew = data == null;
+            var config = isNew ? configDefault : JSON.parse(data);
+            if (isNew)
+                this.setConfig(config);
+            var gtkSettings = Gtk.Settings.get_default();
+            gtkSettings.gtk_application_prefer_dark_theme = config.darkTheme === 'true';
+            gtkSettings.gtk_theme_name = config.themeName;
+            return config;
+        };
+        /**`
+         * setConfig
+         *
+         * @config new values
+         */
+        Ouroboros.prototype.setConfig = function (config) {
+            Util_2.Util.writeFile(USER_DATA_DIR + '/config.json', JSON.stringify(config, null, 2));
+        };
+        /**
+         * setConfigValue
+         *
+         * @name property name
+         * @value new value
+         */
+        Ouroboros.prototype.setConfigValue = function (name, value) {
+            if (value === "")
+                return;
+            var data = Util_2.Util.readFile(USER_DATA_DIR + '/config.json');
+            var config = data == null ? configDefault : JSON.parse(data);
+            if (config[name] === value)
+                return;
+            var gtkSettings = Gtk.Settings.get_default();
+            switch (name) {
+                case 'darkTheme':
+                    gtkSettings.gtk_application_prefer_dark_theme = value === 'true';
+                    config[name] = value;
+                    this.setConfig(config);
+                    this.appWindow.setConfig(config);
+                    break;
+                case 'themeName':
+                    gtkSettings.gtk_theme_name = value;
+                    config[name] = value;
+                    this.setConfig(config);
+                    this.appWindow.setConfig(config);
+                    break;
+            }
+        };
+        return Ouroboros;
+    }());
+    exports.Ouroboros = Ouroboros;
+});
+define("src/main", ["require", "exports", "src/Ouroboros"], function (require, exports, Ouroboros_1) {
+    "use strict";
+    new Ouroboros_1.Ouroboros().application.run(ARGV);
 });

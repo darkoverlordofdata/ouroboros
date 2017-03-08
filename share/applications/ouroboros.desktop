@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Encoding=UTF-8
+Name=Ouroboros
+Comment=Self Serving Browser
+Exec=/home/bruce/.local/bin/ouroboros
+Icon=/home/bruce/.local/share/ouroboros/ouroboros.png
+Terminal=false
+Type=Application
+StartupNotify=true
+Categories=GNOME;GTK;Utility;Internet

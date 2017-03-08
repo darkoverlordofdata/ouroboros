@@ -1,4 +1,4 @@
-#
+# ./application/config/mimes
 #| -------------------------------------------------------------------
 #| MIME TYPES
 #| -------------------------------------------------------------------
@@ -7,6 +7,7 @@
 #|
 #
 
+# module.exports = 
 export mimetypes  =
   'hqx':'application/mac-binhex40',
   'cpt':'application/mac-compactpro',
