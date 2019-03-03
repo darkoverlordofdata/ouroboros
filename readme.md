@@ -2,6 +2,15 @@
 
 Self Serving Browser
 
+### dependencies
+
+Clean install on eOS:
+
+sudp apt install gjs
+sudo apt install libwebkitgtk-3.0-dev
+sudo apt install libgda-5.0-dev
+sudo apt install libsoup-2.4-dev
+
 ### build
 
 I use vscode. ctrl-b to build, f5 to run
