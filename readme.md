@@ -7,8 +7,10 @@ Gnome GJS with GTK from Typescript
 ### dependencies
 
 tested with 
-tsc Version 3.3.3333
-gjs 1.52.5
+
+    tsc Version 3.3.3333
+    gjs 1.52.5 
+    both es5 & es6
 
 Clean install on eOS:
 
@@ -28,7 +30,7 @@ or 'tsc' to build from command line
 ### install
 
 this doesn't use the autogen style install recomended by gnome.
-a custom install script installs to ~/.local
+instead, a custom install script installs to ~/.local
 
 ```
 git clone git@github.com:darkoverlordofdata/ouroboros.git

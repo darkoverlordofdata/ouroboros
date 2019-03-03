@@ -7,7 +7,7 @@ import {Static} from 'joy/Static'
 import {Ouroboros} from 'Ouroboros'
 
 // const DATADIR = '/home/bruce/.local'
-const DATADIR = './'
+const DATADIR = "./"
 const THEMES = [
   "elementary",
   "Adwaita"
