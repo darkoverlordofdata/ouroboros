@@ -1,7 +1,4 @@
-import * as Gio from 'Gio'
 import * as Soup from 'Soup'
-import * as GLib from 'GLib'
-import * as callable from 'callable'
 import {Request} from 'Request'
 import {ResponseImpl, Response} from 'Response'
 const Route = require('Route')

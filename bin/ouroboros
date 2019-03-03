@@ -4237,46 +4237,6 @@ define("src/joy/mimetypes", ["require", "exports"], function (require, exports) 
         'json': ['application/json', 'text/json']
     };
 });
-define("src/joy/View", ["require", "exports", "Gio", "Soup"], function (require, exports, Gio, Soup) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    /**
-     * Views Plugin
-     *
-     * serve templated content
-     */
-    exports.View = {
-        register: function (server, options) {
-            server.decorate('server', 'views', function (options) {
-                server.root = options.path;
-                for (var key in options.engines) {
-                    this.engines[key] = options.engines[key];
-                }
-            });
-            server.decorate('reply', 'view', function (view, locals) {
-                if (locals === void 0) { locals = {}; }
-                var file = Gio.file_new_for_path(server.root + "/" + view);
-                if (file.query_exists(null)) {
-                    var _a = file.load_contents(null), success = _a[0], text = _a[1], length_2 = _a[2];
-                    if (success) {
-                        var ext = view.split('.').pop();
-                        var engine = server.engines[ext];
-                        var page = engine ? engine(String(text), locals) : String(text);
-                        this.request.msg.set_response("text/html", Soup.MemoryUse.COPY, page, page.length);
-                        this.request.msg.set_status(200);
-                    }
-                }
-            });
-        }
-    };
-    /**
-     * Registration data
-     */
-    exports.View.register['attributes'] = {
-        name: 'View',
-        version: '0.0.1'
-    };
-});
 define("src/joy/Static", ["require", "exports", "Gio", "Soup", "src/joy/mimetypes"], function (require, exports, Gio, Soup, mimetypes_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -4302,7 +4262,7 @@ define("src/joy/Static", ["require", "exports", "Gio", "Soup", "src/joy/mimetype
                 }
                 var file = Gio.file_new_for_path(key);
                 if (file.query_exists(null)) {
-                    var _a = file.load_contents(null), success = _a[0], data = _a[1], length_3 = _a[2];
+                    var _a = file.load_contents(null), success = _a[0], data = _a[1], length_2 = _a[2];
                     if (success) {
                         var ext = this.request.path.split('.').pop();
                         var mimetype = (mimetypes_1.mimetypes[ext])
@@ -4310,8 +4270,8 @@ define("src/joy/Static", ["require", "exports", "Gio", "Soup", "src/joy/mimetype
                                 ? mimetypes_1.mimetypes[ext]
                                 : mimetypes_1.mimetypes[ext][0]
                             : "text/html";
-                        cache[key] = { mimetype: mimetype, data: data, length: length_3 };
-                        this.request.msg.set_response(mimetype, Soup.MemoryUse.COPY, data, length_3);
+                        cache[key] = { mimetype: mimetype, data: data, length: length_2 };
+                        this.request.msg.set_response(mimetype, Soup.MemoryUse.COPY, data, length_2);
                         this.request.msg.set_status(200);
                     }
                 }

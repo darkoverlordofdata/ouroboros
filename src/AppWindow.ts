@@ -1,11 +1,8 @@
-import * as GLib from 'GLib'
 import * as Gtk from 'Gtk'
 import * as Gio from 'Gio'
 import * as WebKit from 'WebKit'
-import * as Liquid from 'Liquid'
 import * as Joy from 'joy/Joy'
 import {Util} from 'Util'
-import {View} from 'joy/View'
 import {Static} from 'joy/Static'
 import {Ouroboros} from 'Ouroboros'
 

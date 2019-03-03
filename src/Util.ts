@@ -1,6 +1,5 @@
 
 import * as Gio from 'Gio'
-import * as Gtk from 'Gtk'
 import * as Lang from 'Lang'
 
 export class Util {

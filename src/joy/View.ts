@@ -1,8 +1,5 @@
-import * as Gtk from 'Gtk'
 import * as Gio from 'Gio'
 import * as Soup from 'Soup'
-import * as GLib from 'GLib'
-import {mimetypes} from 'mimetypes'
 
 /**
  * Views Plugin
