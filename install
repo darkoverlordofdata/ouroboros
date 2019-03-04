@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const fs = require('fs')
 const os = require('os')
+const {ncp} = require('ncp')
 const {execSync} = require('child_process')
 /**
  * Install:
@@ -85,4 +86,12 @@ execSync(`cp share/${icoFile} ${prefix}/share/${appName}`)
 for (let file of resFiles) 
     execSync(`cp share/${file} ${prefix}/share/${appName}`)
 
-
+//
+// copy the demo website
+//
+ncp(`share/${appName}/web`, `${prefix}/share/${appName}/web`, (err) => {
+    if (err) {
+        return console.error(err)
+    }
+    console.log("Done")
+})

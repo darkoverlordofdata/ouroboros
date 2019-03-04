@@ -50,4 +50,6 @@ tsc
 
 ### caveat
 
-libwebkitgtk is an order of magnitude slower than chrome. Check out the embedded game at http://0.0.0.0:8088/shmupwarz/html using gtk, and in chrome. You'll see...
+webkitgtk is an order of magnitude slower than chrome. Check out the embedded game at http://0.0.0.0:8088/shmupwarz.html using gtk, and in chrome. You'll see...
+
+webkitgtk also doesn't see, to support GLES, as my shaders are ot displaying.

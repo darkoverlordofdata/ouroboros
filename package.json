@@ -27,7 +27,8 @@
     "route-parser": "0.0.5"
   },
   "devDependencies": {
-    "xml2js": "^0.4.17",
-    "liquid.coffee": "^0.1.8"
+    "liquid.coffee": "^0.1.8",
+    "ncp": "^2.0.0",
+    "xml2js": "^0.4.17"
   }
 }
