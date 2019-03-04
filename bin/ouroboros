@@ -7,17 +7,17 @@
  */
 Object.defineProperties(window, {
     define: { value: (function (modules) {
-            return (name, deps, callback) => {
+            return function (name, deps, callback) {
                 if (typeof name !== 'string') { /* browserify bundle */
-                    const bundle = deps();
+                    var bundle = deps();
                     for (name in bundle)
                         modules[name] = { id: name, exports: bundle[name] };
                 }
                 else { /* amd module */
                     modules[name] = { id: name, exports: {} };
-                    const args = [(name) => modules[name] ? modules[name].exports : imports[name],
+                    var args = [function (name) { return modules[name] ? modules[name].exports : imports[name]; },
                         modules[name].exports];
-                    for (let i = 2; i < deps.length; i++)
+                    for (var i = 2; i < deps.length; i++)
                         args.push(modules[deps[i]].exports);
                     callback.apply(modules[name].exports, args);
                 }
@@ -37,9 +37,9 @@ Object.defineProperties(window, {
 Object.defineProperties(define, {
     amd: { value: true },
     version: { value: '0.0.6' },
-    path: { value: (path) => imports.searchPath.unshift(path) },
-    plugin: { value: (name, context) => imports[name].attach(context) },
-    imports: { value: (libs) => define([], () => libs) }
+    path: { value: function (path) { return imports.searchPath.unshift(path); } },
+    plugin: { value: function (name, context) { return imports[name].attach(context); } },
+    imports: { value: function (libs) { return define([], function () { return libs; }); } }
 });
 Object.defineProperties(String.prototype, {
     format: { value: imports.format.format }
@@ -3920,33 +3920,35 @@ define.imports({
 define("src/Util", ["require", "exports", "Gio", "Lang"], function (require, exports, Gio, Lang) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    class Util {
-        static readFile(filename) {
-            const file = Gio.file_new_for_path(filename);
+    var Util = /** @class */ (function () {
+        function Util() {
+        }
+        Util.readFile = function (filename) {
+            var file = Gio.file_new_for_path(filename);
             if (file.query_exists(null)) {
-                let [success, data, length] = file.load_contents(null);
+                var _a = file.load_contents(null), success = _a[0], data = _a[1], length_1 = _a[2];
                 return data;
             }
             else {
                 return null;
             }
-        }
-        static mkdir(foldername) {
-            const file = Gio.file_new_for_path(foldername);
+        };
+        Util.mkdir = function (foldername) {
+            var file = Gio.file_new_for_path(foldername);
             if (!file.query_exists(null)) {
                 print("folder not found " + foldername);
                 file.make_directory(null);
             }
-        }
-        static writeFile(filename, data) {
-            const file = Gio.file_new_for_path(filename);
+        };
+        Util.writeFile = function (filename, data) {
+            var file = Gio.file_new_for_path(filename);
             if (file.query_exists(null))
                 file.delete(null);
-            let file_stream = file.create(Gio.FileCreateFlags.NONE, null);
-            let data_stream = new Gio.DataOutputStream({ base_stream: file_stream });
+            var file_stream = file.create(Gio.FileCreateFlags.NONE, null);
+            var data_stream = new Gio.DataOutputStream({ base_stream: file_stream });
             data_stream.put_string(data, null);
-        }
-        static loadTemplate(template) {
+        };
+        Util.loadTemplate = function (template) {
             return Lang.Class({
                 Name: template.name,
                 Extends: template.extends,
@@ -3956,8 +3958,9 @@ define("src/Util", ["require", "exports", "Gio", "Lang"], function (require, exp
                     return this.parent(params);
                 }
             });
-        }
-    }
+        };
+        return Util;
+    }());
     exports.Util = Util;
 });
 define("src/joy/Request", ["require", "exports"], function (require, exports) {
@@ -3968,8 +3971,8 @@ define("src/joy/Request", ["require", "exports"], function (require, exports) {
      *
      * this wraps all the handler parameters
      */
-    class Request {
-        constructor(srv, msg, path, query, client) {
+    var Request = /** @class */ (function () {
+        function Request(srv, msg, path, query, client) {
             this.srv = srv;
             this.msg = msg;
             this.path = path;
@@ -3980,7 +3983,7 @@ define("src/joy/Request", ["require", "exports"], function (require, exports) {
          * True if the route matches this request path & method
          * @param route
          */
-        match(route) {
+        Request.prototype.match = function (route) {
             if (route.method !== this.msg['method'])
                 return false;
             if (route.path === '/*')
@@ -3990,8 +3993,9 @@ define("src/joy/Request", ["require", "exports"], function (require, exports) {
             if (route.pattern.match(this.path))
                 return true;
             return false;
-        }
-    }
+        };
+        return Request;
+    }());
     exports.Request = Request;
 });
 define("src/joy/Response", ["require", "exports", "Soup", "callable"], function (require, exports, Soup, callable) {
@@ -4003,25 +4007,26 @@ define("src/joy/Response", ["require", "exports", "Soup", "callable"], function 
      *
      * this wraps the output from the session
      */
-    class ResponseImpl {
-        constructor(request) {
+    var ResponseImpl = /** @class */ (function () {
+        function ResponseImpl(request) {
             this.request = request;
         }
         /**
          * Default response behavior - send the string
          * @param text
          */
-        __call__(text) {
+        ResponseImpl.prototype.__call__ = function (text) {
             this.request.msg.set_response("text/html", Soup.MemoryUse.COPY, text, text.length);
             this.request.msg.set_status(200);
-        }
-        redirect(url) {
+        };
+        ResponseImpl.prototype.redirect = function (url) {
             this.request.msg.set_redirect(302, url);
-        }
-        code(statusCode) {
+        };
+        ResponseImpl.prototype.code = function (statusCode) {
             this.request.msg['status-code'] = statusCode;
-        }
-    }
+        };
+        return ResponseImpl;
+    }());
     exports.ResponseImpl = ResponseImpl;
     /**
      * Callable proxy for the Response Implementation
@@ -4036,14 +4041,14 @@ define("src/joy/Response", ["require", "exports", "Soup", "callable"], function 
 define("src/joy/Joy", ["require", "exports", "Soup", "src/joy/Request", "src/joy/Response"], function (require, exports, Soup, Request_1, Response_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    const Route = require('Route');
+    var Route = require('Route');
     /**
      * Joy!!!
      *
      * A Hapi style plugin wrapper and router for Soup.Server
      */
-    class Server {
-        constructor() {
+    var Server = /** @class */ (function () {
+        function Server() {
             this.info = {};
             this.routes = [];
             this.plugins = [];
@@ -4053,17 +4058,17 @@ define("src/joy/Joy", ["require", "exports", "Soup", "src/joy/Request", "src/joy
          * Set connection options
          * @param options
          */
-        connection(options) {
-            for (let key in options)
+        Server.prototype.connection = function (options) {
+            for (var key in options)
                 this.info[key] = options[key];
-        }
+        };
         /**
          * Define Route
          * @param options
          */
-        route(options) {
+        Server.prototype.route = function (options) {
             if (Array.isArray(options)) {
-                for (let i in options) {
+                for (var i in options) {
                     this.route(options[i]);
                 }
                 return;
@@ -4071,33 +4076,33 @@ define("src/joy/Joy", ["require", "exports", "Soup", "src/joy/Request", "src/joy
             options.pattern = new Route(options.path);
             this.routes.push(options);
             return this;
-        }
+        };
         /**
          * abstract method
          * @param options
          */
-        views(options) { }
+        Server.prototype.views = function (options) { };
         /**
          * Register plugin
          * @param plugin
          * @param next
          */
-        register(plugin, next) {
+        Server.prototype.register = function (plugin, next) {
             if (!Array.isArray(plugin))
                 plugin = [plugin];
-            for (let i in plugin) {
+            for (var i in plugin) {
                 this.plugins.push(plugin[i]);
                 plugin[i].register.register(this, plugin[i].options);
             }
             next(false);
-        }
+        };
         /**
          * Extend a server component from plugin
          * @param type
          * @param property
          * @param method
          */
-        decorate(type, property, method) {
+        Server.prototype.decorate = function (type, property, method) {
             switch (type) {
                 case 'server':
                     Server.prototype[property] = method;
@@ -4109,27 +4114,29 @@ define("src/joy/Joy", ["require", "exports", "Soup", "src/joy/Request", "src/joy
                     Response_1.ResponseImpl.prototype[property] = method;
                     return;
             }
-        }
+        };
         /**
          * Start serving
          * @param next
          */
-        start() {
+        Server.prototype.start = function () {
+            var _this = this;
             this.srv = new Soup.Server();
-            this.srv.add_handler(null, (srv, msg, path, query, client) => {
-                const request = new Request_1.Request(srv, msg, path, query, client);
-                for (let i in this.routes) {
-                    const route = this.routes[i];
+            this.srv.add_handler(null, function (srv, msg, path, query, client) {
+                var request = new Request_1.Request(srv, msg, path, query, client);
+                for (var i in _this.routes) {
+                    var route = _this.routes[i];
                     if (request.match(route)) {
-                        const reply = new Response_1.Response(request);
-                        route.handler.call(this, request, reply);
+                        var reply = new Response_1.Response(request);
+                        route.handler.call(_this, request, reply);
                         return;
                     }
                 }
             }, null, null);
             return !this.srv.listen_all(this.info.port, 0);
-        }
-    }
+        };
+        return Server;
+    }());
     exports.Server = Server;
 });
 define("src/joy/mimetypes", ["require", "exports"], function (require, exports) {
@@ -4239,32 +4246,32 @@ define("src/joy/Static", ["require", "exports", "Gio", "Soup", "src/joy/mimetype
      * serve static content
      */
     exports.Static = {
-        register(server, options) {
-            let cache = {};
+        register: function (server, options) {
+            var cache = {};
             server.decorate('server', 'reset', function (path) {
                 cache = {};
                 options.base = path;
             });
             server.decorate('reply', 'file', function (path) {
-                const key = `${options.base}${path}`;
+                var key = "" + options.base + path;
                 if (cache[key]) {
-                    let data = cache[key];
+                    var data = cache[key];
                     this.request.msg.set_response(data.mimetype, Soup.MemoryUse.COPY, data.data, data.length);
                     this.request.msg.set_status(200);
                     return;
                 }
-                const file = Gio.file_new_for_path(key);
+                var file = Gio.file_new_for_path(key);
                 if (file.query_exists(null)) {
-                    let [success, data, length] = file.load_contents(null);
+                    var _a = file.load_contents(null), success = _a[0], data = _a[1], length_2 = _a[2];
                     if (success) {
-                        const ext = this.request.path.split('.').pop();
-                        const mimetype = (mimetypes_1.mimetypes[ext])
+                        var ext = this.request.path.split('.').pop();
+                        var mimetype = (mimetypes_1.mimetypes[ext])
                             ? typeof mimetypes_1.mimetypes[ext] === 'string'
                                 ? mimetypes_1.mimetypes[ext]
                                 : mimetypes_1.mimetypes[ext][0]
                             : "text/html";
-                        cache[key] = { mimetype: mimetype, data: data, length: length };
-                        this.request.msg.set_response(mimetype, Soup.MemoryUse.COPY, data, length);
+                        cache[key] = { mimetype: mimetype, data: data, length: length_2 };
+                        this.request.msg.set_response(mimetype, Soup.MemoryUse.COPY, data, length_2);
                         this.request.msg.set_status(200);
                     }
                 }
@@ -4285,13 +4292,12 @@ define("src/joy/Static", ["require", "exports", "Gio", "Soup", "src/joy/mimetype
 define("src/AppWindow", ["require", "exports", "Gtk", "Gio", "WebKit", "src/joy/Joy", "src/Util", "src/joy/Static"], function (require, exports, Gtk, Gio, WebKit, Joy, Util_1, Static_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    // const DATADIR = '/home/bruce/.local'
-    const DATADIR = "./";
-    const THEMES = [
+    var DATADIR = "./";
+    var THEMES = [
         "elementary",
         "Adwaita"
     ];
-    const SPLASH = `<html><body style="background: url(Serpiente_alquimica.jpg) no-repeat center center fixed"></body></html>`;
+    var SPLASH = "<html><body style=\"background: url(Serpiente_alquimica.jpg) no-repeat center center fixed\"></body></html>";
     /**
      * Factory returns an anonymous implemention of the IAppWindow interface
      */
@@ -4300,17 +4306,17 @@ define("src/AppWindow", ["require", "exports", "Gtk", "Gio", "WebKit", "src/joy/
             name: 'AppWindow',
             extends: Gtk.ApplicationWindow,
             fields: ['back', 'refresh', 'url', 'client', 'status'],
-            path: `${DATADIR}/share/ouroboros/main.ui`
+            path: DATADIR + "/share/ouroboros/main.ui"
         });
     }
     /**
      * Top level Application
      */
-    class AppWindow {
+    var AppWindow = /** @class */ (function () {
         /**
          * Load the glade template
          */
-        constructor(params, parent) {
+        function AppWindow(params, parent) {
             this.parent = parent;
             this.window = new (AppWindowFactory())(params);
             /**
@@ -4318,124 +4324,128 @@ define("src/AppWindow", ["require", "exports", "Gtk", "Gio", "WebKit", "src/joy/
              *
              */
             // Gtk.Window.set_default_icon_from_file(`${DATADIR}/share/ouroboros/bosco.png`)
-            Gtk.Window.set_default_icon_from_file(`${DATADIR}/share/ouroboros/about.jpg`);
-            this.window.set_icon_from_file(`${DATADIR}/share/ouroboros/icon.jpg`);
+            Gtk.Window.set_default_icon_from_file(DATADIR + "/share/ouroboros/about.jpg");
+            this.window.set_icon_from_file(DATADIR + "/share/ouroboros/icon.jpg");
         }
         /**
          * set the configuration
          * @param config
          */
-        setConfig(config) {
+        AppWindow.prototype.setConfig = function (config) {
             this.config = config;
-        }
+        };
         /**
          * buildUI
          *
          * @param config
          */
-        buildUI() {
+        AppWindow.prototype.buildUI = function () {
+            var _this = this;
             this.headerbar = new Gtk.HeaderBar({
                 title: this.config.appName,
                 show_close_button: true
             });
             this.headerbar.pack_start(this.buildOpen());
             this.headerbar.pack_start(this.buildPreferences());
-            let webView = this.webView = new WebKit.WebView();
+            var webView = this.webView = new WebKit.WebView();
             this.window.client.add(this.webView);
-            this.window.back.connect('clicked', (button) => webView.go_back());
-            this.window.refresh.connect('clicked', (button) => webView.reload());
-            this.window.url.connect('activate', (button) => webView.load_uri(this.window.url.get_text()));
+            this.window.back.connect('clicked', function (button) { return webView.go_back(); });
+            this.window.refresh.connect('clicked', function (button) { return webView.reload(); });
+            this.window.url.connect('activate', function (button) { return webView.load_uri(_this.window.url.get_text()); });
             this.startServer();
             this.window.set_default_size(1040, 740);
             this.window.set_titlebar(this.headerbar);
             return this.window.show_all();
-        }
+        };
         /**
          * Set the url
          * @param url
          */
-        setUrl(url) {
+        AppWindow.prototype.setUrl = function (url) {
             this.webView.load_uri(url);
             this.window.url.set_text(url);
-        }
+        };
         /**
          * Build a set preferences button
          */
-        buildPreferences() {
+        AppWindow.prototype.buildPreferences = function () {
+            var _this = this;
             // Add options to set the name and the prefix
-            let grid = new Gtk.Grid({
+            var grid = new Gtk.Grid({
                 column_spacing: 10,
                 row_spacing: 10,
                 margin: 10
             });
             grid.set_column_homogeneous(true);
-            let darkLabel = new Gtk.Label({ label: "Dark theme:" });
+            var darkLabel = new Gtk.Label({ label: "Dark theme:" });
             darkLabel.set_halign(Gtk.Align.END);
-            let darkEntry = new Gtk.Switch({
+            var darkEntry = new Gtk.Switch({
                 state: this.config.darkTheme === 'true',
                 valign: Gtk.Align.CENTER
             });
-            darkEntry.connect('state-set', () => this.parent.setConfigValue('darkTheme', darkEntry.get_active().toString()));
+            darkEntry.connect('state-set', function () { return _this.parent.setConfigValue('darkTheme', darkEntry.get_active().toString()); });
             grid.attach(darkLabel, 0, 0, 1, 1);
             grid.attach_next_to(darkEntry, darkLabel, Gtk.PositionType.RIGHT, 2, 1);
-            let themeLabel = new Gtk.Label({ label: "Theme name:" });
+            var themeLabel = new Gtk.Label({ label: "Theme name:" });
             themeLabel.set_halign(Gtk.Align.END);
-            let themeSelect = new Gtk.ComboBoxText();
-            THEMES.forEach((theme, i) => themeSelect.insert(i, theme, theme));
+            var themeSelect = new Gtk.ComboBoxText();
+            THEMES.forEach(function (theme, i) { return themeSelect.insert(i, theme, theme); });
             themeSelect.set_active_id(this.config.themeName);
-            themeSelect.connect('changed', () => this.parent.setConfigValue('themeName', themeSelect.get_active_text()));
+            themeSelect.connect('changed', function () { return _this.parent.setConfigValue('themeName', themeSelect.get_active_text()); });
             grid.attach(themeLabel, 0, 1, 1, 1);
             grid.attach_next_to(themeSelect, themeLabel, Gtk.PositionType.RIGHT, 2, 1);
-            let menubutton = new Gtk.ToggleButton();
+            var menubutton = new Gtk.ToggleButton();
             menubutton.add(new Gtk.Image({
                 icon_name: "open-menu-symbolic",
                 icon_size: Gtk.IconSize.SMALL_TOOLBAR
             }));
-            let menu = new Gtk.Popover();
+            var menu = new Gtk.Popover();
             menu.set_relative_to(menubutton);
-            menu.connect("closed", () => menubutton.get_active() ? menubutton.set_active(false) : null);
-            menubutton.connect("clicked", () => menubutton.get_active() ? menu.show_all() : null);
+            menu.connect("closed", function () { return menubutton.get_active() ? menubutton.set_active(false) : null; });
+            menubutton.connect("clicked", function () { return menubutton.get_active() ? menu.show_all() : null; });
             menu.add(grid);
             return menubutton;
-        }
+        };
         /**
          * build open site button
          */
-        buildOpen() {
-            const openButton = new Gtk.Button();
+        AppWindow.prototype.buildOpen = function () {
+            var _this = this;
+            var openButton = new Gtk.Button();
             openButton.add(new Gtk.Image({
                 icon_name: "document-open-symbolic",
                 icon_size: Gtk.IconSize.SMALL_TOOLBAR
             }));
-            openButton.connect("clicked", () => {
-                const chooser = new Gtk.FileChooserDialog({
+            openButton.connect("clicked", function () {
+                var chooser = new Gtk.FileChooserDialog({
                     title: _("Select Project File"),
                     action: Gtk.FileChooserAction.OPEN,
-                    transient_for: this.window,
+                    transient_for: _this.window,
                     modal: true
                 });
                 chooser.set_select_multiple(false);
                 chooser.add_button(_("Open"), Gtk.ResponseType.OK);
                 chooser.add_button(_("Cancel"), Gtk.ResponseType.CANCEL);
                 chooser.set_default_response(Gtk.ResponseType.OK);
-                chooser.connect("response", (dialog, response) => {
-                    let filename = dialog.get_filenames()[0];
+                chooser.connect("response", function (dialog, response) {
+                    var filename = dialog.get_filenames()[0];
                     dialog.destroy();
-                    let file = Gio.file_new_for_path(filename);
-                    this.parent.setConfigValue('url', file.get_basename());
-                    this.parent.setConfigValue('base', file.get_parent().get_path());
-                    this.server['reset'](file.get_parent().get_path());
-                    this.setUrl(`http://${this.server.info.host}:${this.server.info.port}/${file.get_basename()}`);
+                    var file = Gio.file_new_for_path(filename);
+                    _this.parent.setConfigValue('url', file.get_basename());
+                    _this.parent.setConfigValue('base', file.get_parent().get_path());
+                    _this.server['reset'](file.get_parent().get_path());
+                    _this.setUrl("http://" + _this.server.info.host + ":" + _this.server.info.port + "/" + file.get_basename());
                 });
                 return chooser.run();
             });
             return openButton;
-        }
+        };
         /**
          * Run http server
          */
-        startServer() {
-            const server = this.server = new Joy.Server();
+        AppWindow.prototype.startServer = function () {
+            var _this = this;
+            var server = this.server = new Joy.Server();
             server.connection({ host: '0.0.0.0', port: 8088 });
             server.route([{
                     method: 'GET', path: '/',
@@ -4448,27 +4458,29 @@ define("src/AppWindow", ["require", "exports", "Gtk", "Gio", "WebKit", "src/joy/
                         reply.file(request.path);
                     }
                 }]);
+            print("base = ", DATADIR + "/share/ouroboros/web");
             server.register([
-                { register: Static_1.Static, options: { base: this.config.base === '' ? `${DATADIR}/src/web` : this.config.base } },
-            ], (err) => {
+                { register: Static_1.Static, options: { base: DATADIR + "/share/ouroboros/web" } },
+            ], function (err) {
                 if (err)
                     throw err;
                 err = server.start();
                 if (err)
                     throw err;
-                this.setUrl(`http://${server.info.host}:${server.info.port}/${this.config.url}`);
+                _this.setUrl("http://" + server.info.host + ":" + server.info.port + "/" + _this.config.url);
             });
-        }
-    }
+        };
+        return AppWindow;
+    }());
     exports.AppWindow = AppWindow;
 });
 define("src/Ouroboros", ["require", "exports", "GLib", "Gtk", "Gio", "src/Util", "src/AppWindow"], function (require, exports, GLib, Gtk, Gio, Util_2, AppWindow_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    const USER_DATA_DIR = GLib.get_user_data_dir() + '/ouroboros';
-    const darkThemeDefault = "true";
-    const themeNameDefault = "elementary";
-    const configDefault = {
+    var USER_DATA_DIR = GLib.get_user_data_dir() + '/ouroboros';
+    var darkThemeDefault = "true";
+    var themeNameDefault = "elementary";
+    var configDefault = {
         appName: "Ouroboros",
         url: '',
         base: '',
@@ -4480,18 +4492,19 @@ define("src/Ouroboros", ["require", "exports", "GLib", "Gtk", "Gio", "src/Util",
      *
      * top level application object
      */
-    class Ouroboros {
-        constructor() {
+    var Ouroboros = /** @class */ (function () {
+        function Ouroboros() {
+            var _this = this;
             this.application = new Gtk.Application({ flags: Gio.ApplicationFlags.FLAGS_NONE });
-            this.application.connect('activate', () => {
-                this.appWindow = new AppWindow_1.AppWindow({
-                    application: this.application,
-                }, this);
-                this.buildUI(this.application);
-                this.appWindow.setConfig(this.getConfig());
-                this.appWindow.buildUI();
-                this.window = this.appWindow.window;
-                this.window.present();
+            this.application.connect('activate', function () {
+                _this.appWindow = new AppWindow_1.AppWindow({
+                    application: _this.application,
+                }, _this);
+                _this.buildUI(_this.application);
+                _this.appWindow.setConfig(_this.getConfig());
+                _this.appWindow.buildUI();
+                _this.window = _this.appWindow.window;
+                _this.window.present();
             });
         }
         /**
@@ -4499,33 +4512,34 @@ define("src/Ouroboros", ["require", "exports", "GLib", "Gtk", "Gio", "src/Util",
          *
          * main app menu
          */
-        buildUI(application) {
-            let menu = new Gio.Menu();
+        Ouroboros.prototype.buildUI = function (application) {
+            var _this = this;
+            var menu = new Gio.Menu();
             menu.append(_("New"), 'app.new');
             menu.append(_("About"), 'app.about');
             menu.append(_("Quit"), 'app.quit');
             application.set_app_menu(menu);
-            let newAction = new Gio.SimpleAction({ name: 'new' });
-            newAction.connect('activate', () => this.showNew());
+            var newAction = new Gio.SimpleAction({ name: 'new' });
+            newAction.connect('activate', function () { return _this.showNew(); });
             application.add_action(newAction);
-            let aboutAction = new Gio.SimpleAction({ name: 'about' });
-            aboutAction.connect('activate', () => this.showAbout());
+            var aboutAction = new Gio.SimpleAction({ name: 'about' });
+            aboutAction.connect('activate', function () { return _this.showAbout(); });
             application.add_action(aboutAction);
-            let quitAction = new Gio.SimpleAction({ name: 'quit' });
-            quitAction.connect('activate', () => this.window.destroy());
+            var quitAction = new Gio.SimpleAction({ name: 'quit' });
+            quitAction.connect('activate', function () { return _this.window.destroy(); });
             application.add_action(quitAction);
-        }
+        };
         /**
          * New project dialog
          */
-        showNew() {
+        Ouroboros.prototype.showNew = function () {
             return print("Not implemented");
-        }
+        };
         /**
          * About dialog
          */
-        showAbout() {
-            let about = new Gtk.AboutDialog();
+        Ouroboros.prototype.showAbout = function () {
+            var about = new Gtk.AboutDialog();
             about.set_logo_icon_name(null);
             about.set_transient_for(this.window);
             about.set_program_name(_("Ouroboros"));
@@ -4536,44 +4550,44 @@ define("src/Ouroboros", ["require", "exports", "GLib", "Gtk", "Gio", "src/Util",
             about.set_authors(["bruce davidson"]);
             about.run();
             return about.destroy();
-        }
+        };
         /**
          * load configuration
          */
-        getConfig() {
+        Ouroboros.prototype.getConfig = function () {
             Util_2.Util.mkdir(USER_DATA_DIR);
-            let data = Util_2.Util.readFile(USER_DATA_DIR + '/config.json');
-            let isNew = data == null;
-            let config = isNew ? configDefault : JSON.parse(data);
+            var data = Util_2.Util.readFile(USER_DATA_DIR + '/config.json');
+            var isNew = data == null;
+            var config = isNew ? configDefault : JSON.parse(data);
             if (isNew)
                 this.setConfig(config);
-            let gtkSettings = Gtk.Settings.get_default();
+            var gtkSettings = Gtk.Settings.get_default();
             gtkSettings.gtk_application_prefer_dark_theme = config.darkTheme === 'true';
             gtkSettings.gtk_theme_name = config.themeName;
             return config;
-        }
+        };
         /**`
          * setConfig
          *
          * @config new values
          */
-        setConfig(config) {
+        Ouroboros.prototype.setConfig = function (config) {
             Util_2.Util.writeFile(USER_DATA_DIR + '/config.json', JSON.stringify(config, null, 2));
-        }
+        };
         /**
          * setConfigValue
          *
          * @name property name
          * @value new value
          */
-        setConfigValue(name, value) {
+        Ouroboros.prototype.setConfigValue = function (name, value) {
             if (value === "")
                 return;
-            let data = Util_2.Util.readFile(USER_DATA_DIR + '/config.json');
-            let config = data == null ? configDefault : JSON.parse(data);
+            var data = Util_2.Util.readFile(USER_DATA_DIR + '/config.json');
+            var config = data == null ? configDefault : JSON.parse(data);
             if (config[name] === value)
                 return;
-            let gtkSettings = Gtk.Settings.get_default();
+            var gtkSettings = Gtk.Settings.get_default();
             switch (name) {
                 case 'base':
                     config[name] = value;
@@ -4598,8 +4612,9 @@ define("src/Ouroboros", ["require", "exports", "GLib", "Gtk", "Gio", "src/Util",
                     this.appWindow.setConfig(config);
                     break;
             }
-        }
-    }
+        };
+        return Ouroboros;
+    }());
     exports.Ouroboros = Ouroboros;
 });
 define("src/main", ["require", "exports", "src/Ouroboros"], function (require, exports, Ouroboros_1) {

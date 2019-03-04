@@ -6,8 +6,7 @@ import {Util} from 'Util'
 import {Static} from 'joy/Static'
 import {Ouroboros} from 'Ouroboros'
 
-// const DATADIR = '/home/bruce/.local'
-const DATADIR = "./"
+var DATADIR = "./"
 const THEMES = [
   "elementary",
   "Adwaita"
@@ -205,8 +204,10 @@ export class AppWindow {
             reply.file(request.path)
         }
     }])
+    print("base = ", `${DATADIR}/share/ouroboros/web`)
     server.register([ 
-        {register: Static,  options: {base: this.config.base === '' ? `${DATADIR}/src/web` : this.config.base } }, 
+      {register: Static,  options: {base: `${DATADIR}/share/ouroboros/web`  } }, 
+      // {register: Static,  options: {base: this.config.base === '' ? `${DATADIR}/share/ouroboros/web` : this.config.base } }, 
     ], (err) => {
         if (err) throw err
         err = server.start()

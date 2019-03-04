@@ -42,7 +42,7 @@ if (!fs.existsSync(`${prefix}/share/${appName}`))
 //  patch the data prefix, add a shebang
 //
 let source = fs.readFileSync(`bin/${exeFile}`, {encoding: 'utf8'})
-source = source.replace(/const DATADIR = \"\.\/\"/g, `const DATADIR = \"${prefix}\"`)
+source = source.replace(/var DATADIR = \"\.\/\"/g, `const DATADIR = \"${prefix}\"`)
 fs.writeFileSync(`${prefix}/bin/${exeFile}`, `#!/usr/bin/env gjs\n`+source)
 
 //

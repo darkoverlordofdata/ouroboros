@@ -12,6 +12,9 @@ tested with
     gjs 1.52.5 
     both es5 & es6
 
+    es5 - 100%
+    es6 - callable-object not working in GJS. This is used by submodule Joy.
+
 Clean install on eOS:
 
     npm
@@ -43,3 +46,8 @@ tsc
 ### testimonials
 
 'this is like WebKat squared!' - Bosco
+
+
+### caveat
+
+libwebkitgtk is an order of magnitude slower than chrome. Check out the embedded game at http://0.0.0.0:8088/shmupwarz/html using gtk, and in chrome. You'll see...
